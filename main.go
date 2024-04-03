@@ -9,14 +9,6 @@ import (
 )
 
 func main() {
-	// parser := flags.NewParser(nil, flags.Default)
-	//
-	// decodeCmd := DecodeOptions{}
-	// _, _ = parser.AddCommand("decode", "PDV Decoder", "Extracts frames and audio from a .pdv file", &decodeCmd)
-	//
-	// encodeCmd := EncodeOptions{}
-	// _, _ = parser.AddCommand("encode", "PDV Encoder", "Encodes a video to a .pdv file", &encodeCmd)
-
 	var opts UnpackOptions
 	_, err := flags.Parse(&opts)
 
