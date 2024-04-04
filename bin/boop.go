@@ -10,44 +10,47 @@ import (
 )
 
 const (
-	tableStart  = 0x2CCF00 // this is hardcoded for NTSC 2.01
-	magicOffset = 0xFF800  // source: it came to me in a dream
+	tableStart        = 0x2CCF00        // this is hardcoded for NTSC 2.01
+	MagicOffset       = 0xFF800         // source: it came to me in a dream
+	PathPointerOffset = MagicOffset - 1 // same as above
 )
 
 /*
+	[NTSC 2.01]
 	Table 1 Offset: 0x2CCF00 (2936576)
 	Table 2 Offset: 0x2D4900 (2967808)
 	Table 3 Offset: 0x2E4680 (3032704)
-	Data Table End: 0x2FFCF3 (3144947)
+	Data Table End: 0x2FFCE0 (3144928)
+	Data Table Len: 0x032DE0 ( 208352)
 */
 
-func Boop(inFile, outDir string) error {
+func ReadDataMap(inFile string) (*DataMap, error) {
 	f, err := os.Open(inFile)
 	if err != nil {
-		return fmt.Errorf("can't open file: %v", err)
+		return nil, fmt.Errorf("can't open file: %v", err)
 	}
 
 	defer f.Close()
 
 	pos, err := f.Seek(tableStart, io.SeekStart)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var (
 		table1Entries = map[uint32]uint32{} // map of filePointer -> pathPointer
 
-		table2PhysFileEntries = map[uint32]Table2FileEntry{}
-		table2VirtFileEntries = map[uint32]Table2FileEntry{}
-		table2ChunkEntries    = map[uint32]Table2ChunkEntry{}
-		table3FilePaths       = map[uint32]string{} // map of offset in binary -> file path
+		table2PhysFileEntries = map[uint32]Table2FileEntry{}  // map of offset in binary -> entry
+		table2VirtFileEntries = map[uint32]Table2FileEntry{}  // map of offset in binary -> entry
+		table2ChunkEntries    = map[uint32]Table2ChunkEntry{} // map of offset in binary -> entry
+		table3FilePaths       = map[uint32]string{}           // map of offset in binary -> file path
 	)
 
 	for {
 		var entry Table1Entry
 		err := utils.ReadStruct(f, &entry)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if entry.FilePointer == 0 && entry.PathPointer == 0 {
@@ -58,12 +61,12 @@ func Boop(inFile, outDir string) error {
 	}
 
 	table1EntriesCount := len(table1Entries)
-	log.Printf("Read %d entries into table 1", table1EntriesCount)
+	log.Printf("[Table 1] total entries: %d", table1EntriesCount)
 
 	// skip to the next table
 	pos, err = f.Seek(72, io.SeekCurrent)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for {
@@ -73,7 +76,7 @@ func Boop(inFile, outDir string) error {
 		var entryType Table2EntryType
 		err := utils.ReadStruct(f, &entryType)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		switch entryType {
@@ -81,7 +84,7 @@ func Boop(inFile, outDir string) error {
 			var entry Table2FileEntry
 			err := utils.ReadStruct(f, &entry)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			table2PhysFileEntries[posUint] = entry
@@ -89,7 +92,7 @@ func Boop(inFile, outDir string) error {
 			var entry Table2FileEntry
 			err := utils.ReadStruct(f, &entry)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			table2VirtFileEntries[posUint] = entry
@@ -97,7 +100,7 @@ func Boop(inFile, outDir string) error {
 			var entry Table2ChunkEntry
 			err := utils.ReadStruct(f, &entry)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			table2ChunkEntries[posUint] = entry
@@ -121,15 +124,15 @@ func Boop(inFile, outDir string) error {
 	table2VirtFileEntriesCount := len(table2VirtFileEntries)
 	table2ChunkEntriesCount := len(table2ChunkEntries)
 
-	log.Printf("Read %d physical file entries from table 2", table2PhysFileEntriesCount)
-	log.Printf("Read %d virtual file entries from table 2", table2VirtFileEntriesCount)
-	log.Printf("Read %d chunk entries from table 2", table2ChunkEntriesCount)
-	log.Printf("Read %d entries from table 2 in total", table2PhysFileEntriesCount+table2VirtFileEntriesCount+table2ChunkEntriesCount)
+	log.Printf("[Table 2] phys files: %d", table2PhysFileEntriesCount)
+	log.Printf("[Table 2] virt files: %d", table2VirtFileEntriesCount)
+	log.Printf("[Table 2] chunk files: %d", table2ChunkEntriesCount)
+	log.Printf("[Table 2] total files: %d", table2PhysFileEntriesCount+table2VirtFileEntriesCount+table2ChunkEntriesCount)
 
 	// skip to the next table
 	pos, err = f.Seek(44, io.SeekCurrent)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for {
@@ -139,17 +142,20 @@ func Boop(inFile, outDir string) error {
 				break // reached the end of the path table
 			}
 
-			return err
+			return nil, err
 		}
 
 		table3FilePaths[uint32(pathOffset)] = pathEntry
 	}
 
 	table3FilePathsCount := len(table3FilePaths)
-	log.Printf("Read %d file paths from table 3", table3FilePathsCount)
+	log.Printf("[Table 3] file paths: %d", table3FilePathsCount)
 
-	// check where we are
-	pos, _ = f.Seek(0, io.SeekCurrent)
-
-	return nil
+	return &DataMap{
+		FileToPathPointers:      table1Entries,
+		BinaryFilePointers:      table2PhysFileEntries,
+		ArchiveFilePointers:     table2VirtFileEntries,
+		ArchiveDeepFilePointers: table2ChunkEntries,
+		FilePaths:               table3FilePaths,
+	}, nil
 }
