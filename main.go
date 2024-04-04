@@ -6,12 +6,10 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
+	"sh2unpack/bin"
 )
 
-func main() {
-	var opts UnpackOptions
-	_, err := flags.Parse(&opts)
-
+func handleFlagsError(err error) {
 	if err != nil {
 		var e *flags.Error
 		if errors.As(err, &e) {
@@ -26,6 +24,18 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+}
 
-	log.Println(opts)
+func main() {
+	var opts UnpackOptions
+	_, err := flags.Parse(&opts)
+	handleFlagsError(err)
+
+	// log.Printf("in:  %s", opts.InFile)
+	// log.Printf("out: %s", opts.Pos.OutDir)
+
+	err = bin.Boop(string(opts.InFile), string(opts.Pos.OutDir))
+	if err != nil {
+		log.Printf("boop err: %v", err)
+	}
 }
