@@ -5,6 +5,7 @@ import (
 	"errors"
 	"golang.org/x/exp/slices"
 	"io"
+	"os"
 )
 
 const (
@@ -27,10 +28,18 @@ func ReadStruct[T interface{}](r io.Reader, t *T) error {
 	return nil
 }
 
-// MapHasKey returns a boolean signifying whether a map contains a key or not.
-func MapHasKey[K comparable, V any](m map[K]V, k K) bool {
-	_, ok := m[k]
-	return ok
+func CopyPartOfFileToFile(dst, src *os.File, srcOffset, srcLength int64) error {
+	_, err := src.Seek(srcOffset, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.CopyN(dst, src, srcLength)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // IndexOfSlice returns the index of the needle slice in the haystack slice, or -1 if haystack does not contain needle.

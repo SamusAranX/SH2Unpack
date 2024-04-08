@@ -2,7 +2,6 @@ package bin
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -19,16 +18,8 @@ import (
 	Data Table Len: 0x032DE0 ( 208352)
 */
 
-func ReadDataMap(inFile string, startOffset int64) (*DataMap, error) {
-	f, err := os.Open(inFile)
-	if err != nil {
-		return nil, fmt.Errorf("can't open file: %v", err)
-	}
-
-	defer f.Close()
-
+func ReadDataMap(f *os.File, startOffset int64) (*DataMap, error) {
 	pos, err := f.Seek(startOffset, io.SeekStart)
-	//pos, err := f.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, err
 	}
