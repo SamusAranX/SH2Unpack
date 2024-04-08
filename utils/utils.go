@@ -46,6 +46,10 @@ func ReadNullTerminatedString(f io.ReadSeeker) (int64, string, error) {
 		tempByte := make([]byte, 1)
 		_, err := f.Read(tempByte)
 		if err != nil {
+			if errors.Is(err, io.EOF) && tempBytes != nil {
+				return offset, string(tempBytes), nil
+			}
+
 			return -1, "", err
 		}
 
@@ -63,11 +67,12 @@ func ReadNullTerminatedString(f io.ReadSeeker) (int64, string, error) {
 			// invalid ASCII char
 			return -1, "", ErrInvalidASCIIChar
 		} else {
-			// add to tempBytes
+			// we found an ASCII char!
+			// add it to tempBytes and store the offset we found it at
 			tempBytes = append(tempBytes, b)
 			if offset < 0 {
 				pos, _ := f.Seek(0, io.SeekCurrent)
-				offset = pos
+				offset = pos - 1 // minus one to compensate for the read earlier
 			}
 		}
 	}
