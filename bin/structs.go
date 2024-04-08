@@ -19,12 +19,12 @@ const (
 )
 
 type Table1Entry struct {
-	FilePointer uint32
-	PathPointer uint32
+	FileOffset uint32
+	PathOffset uint32
 }
 
 func (e Table1Entry) String() string {
-	return fmt.Sprintf("{FilePointer:0x%X PathPointer:0x%X}", e.FilePointer, e.PathPointer)
+	return fmt.Sprintf("{FileOffset:0x%X PathOffset:0x%X}", e.FileOffset, e.PathOffset)
 }
 
 // used for physical and virtual files
@@ -50,65 +50,64 @@ func (e Table2ChunkEntry) String() string {
 }
 
 type DataMap struct {
-	FileToPathPointers []Table1Entry
+	FileToPathOffsets []Table1Entry
 
-	BinaryFilePointers  map[uint32]Table2FileEntry
-	ArchiveFilePointers map[uint32]Table2FileEntry
-	ArchivePartPointers map[uint32]Table2ChunkEntry
+	BinaryFileOffsets  map[uint32]Table2FileEntry
+	ArchiveFileOffsets map[uint32]Table2FileEntry
+	ArchivePartOffsets map[uint32]Table2ChunkEntry
 
 	FilePaths map[uint32]string
 }
 
-//	func (d DataMap) GetBinaryFileEntry(rawAddress uint32) Table2FileEntry {
-//		entry, ok := d.BinaryFilePointers[rawAddress-BINAddressOffset]
-//		if !ok {
-//			log.Fatalf("invalid binary file pointer 0x%X (%[1]d)", rawAddress)
-//		}
-//
-//		return entry
-//	}
+func (d DataMap) GetBinaryFileEntry(rawAddress uint32) (Table2FileEntry, bool) {
+	entry, ok := d.BinaryFileOffsets[rawAddress-MagicOffset]
+	if !ok {
+		return Table2FileEntry{}, false
+	}
 
-// GetArchiveFileEntry takes a raw address and returns a struct representing an MGF file
+	return entry, true
+}
+
+// GetArchiveFileEntry takes a raw address and returns a struct representing an MGF file.
 func (d DataMap) GetArchiveFileEntry(rawAddress uint32) (Table2FileEntry, bool) {
-	entry, ok := d.ArchiveFilePointers[rawAddress-MagicOffset]
-	//entry, ok := d.ArchiveFilePointers[rawAddress]
+	entry, ok := d.ArchiveFileOffsets[rawAddress-MagicOffset]
 	if !ok {
-		// log.Printf("invalid archive file pointer 0x%X (%[1]d)", rawAddress)
 		return Table2FileEntry{}, false
 	}
 
 	return entry, true
 }
 
-// GetArchiveFileEntryFromARPEntry takes an ARP entry and returns a struct representing an MGF file
-func (d DataMap) GetArchiveFileEntryFromARPEntry(arpEntry Table2ChunkEntry) (Table2FileEntry, bool) {
-	entry, ok := d.ArchiveFilePointers[arpEntry.EntryAddress-MagicOffset]
-	//entry, ok := d.ArchiveFilePointers[rawAddress]
-	if !ok {
-		// log.Printf("invalid archive file pointer 0x%X (%[1]d)", rawAddress)
-		return Table2FileEntry{}, false
+// GetArchiveFileEntryFromARPEntry takes an ARP entry and returns a struct representing an MGF file.
+// This is done by taking the ARP entry's EntryAddress value and subtracting 0x10 in a loop until
+// we have an address that matches an ARC file.
+func (d DataMap) GetArchiveFileEntryFromARPEntry(arpEntry Table2ChunkEntry, minOffset uint32) (Table2FileEntry, bool) {
+	for addr := arpEntry.EntryAddress; addr >= minOffset; addr -= 0x10 {
+		entry, ok := d.ArchiveFileOffsets[addr-MagicOffset]
+		if ok {
+			return entry, true
+		}
 	}
 
-	return entry, true
+	return Table2FileEntry{}, false
 }
 
-// GetArchivePartEntry takes a raw address and returns a struct representing a file stored inside of an MGF file
+// GetArchivePartEntry takes a raw address and returns a struct representing a file stored inside of an MGF file.
 func (d DataMap) GetArchivePartEntry(rawAddress uint32) (Table2ChunkEntry, bool) {
-	entry, ok := d.ArchivePartPointers[rawAddress-MagicOffset]
+	entry, ok := d.ArchivePartOffsets[rawAddress-MagicOffset]
 	if !ok {
-		// log.Printf("invalid archive part pointer 0x%X (%[1]d)", rawAddress)
 		return Table2ChunkEntry{}, false
 	}
 
 	return entry, true
 }
 
-// GetFilePath takes a raw address and returns a file path string
+// GetFilePath takes a raw address and returns a file path string.
+// This works with both Table1Entry.FileOffset and Table2FileEntry.PathOffset addresses.
 func (d DataMap) GetFilePath(rawAddress uint32) (string, bool) {
 	path, ok := d.FilePaths[rawAddress-MagicOffset]
 	if !ok {
 		return "", false
-		// log.Fatalf("invalid file path pointer 0x%X (%[1]d)", rawAddress)
 	}
 
 	return path, true

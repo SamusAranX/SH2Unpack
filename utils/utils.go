@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/binary"
 	"errors"
+	"golang.org/x/exp/slices"
 	"io"
 )
 
@@ -16,7 +17,7 @@ var (
 	ErrWhaHappun         = errors.New("wha happun")
 )
 
-// ReadStruct reads arbitrary types and structs from readers
+// ReadStruct reads arbitrary types and structs from readers.
 func ReadStruct[T interface{}](r io.Reader, t *T) error {
 	err := binary.Read(r, binary.LittleEndian, t)
 	if err != nil {
@@ -26,10 +27,36 @@ func ReadStruct[T interface{}](r io.Reader, t *T) error {
 	return nil
 }
 
-// MapHasKey returns a boolean signifying whether a map contains a key or not
+// MapHasKey returns a boolean signifying whether a map contains a key or not.
 func MapHasKey[K comparable, V any](m map[K]V, k K) bool {
 	_, ok := m[k]
 	return ok
+}
+
+// IndexOfSlice returns the index of the needle slice in the haystack slice, or -1 if haystack does not contain needle.
+// If haystack is smaller than needle, -1 is returned.
+// If both slices' lengths are equal, 0 or -1 is returned, depending on whether the slices are equal.
+func IndexOfSlice[T comparable](haystack []T, needle []T) int {
+	haystackLen := len(haystack)
+	needleLen := len(needle)
+
+	if haystackLen < needleLen {
+		return -1
+	} else if haystackLen == needleLen {
+		if slices.Equal(haystack, needle) {
+			return 0
+		}
+		return -1
+	}
+
+	for i := 0; i <= haystackLen-needleLen; i++ {
+		substack := haystack[i : i+needleLen]
+		if slices.Equal(substack, needle) {
+			return i
+		}
+	}
+
+	return -1
 }
 
 // ReadNullTerminatedString scans an io.ReadSeeker for a maximum of 128 bytes and

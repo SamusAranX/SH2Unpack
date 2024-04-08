@@ -49,7 +49,7 @@ func ReadDataMap(inFile string, startOffset int64) (*DataMap, error) {
 			return nil, err
 		}
 
-		if entry.FilePointer == 0 && entry.PathPointer == 0 {
+		if entry.FileOffset == 0 && entry.PathOffset == 0 {
 			pos, _ = f.Seek(-8, io.SeekCurrent)
 			break
 		}
@@ -140,10 +140,10 @@ func ReadDataMap(inFile string, startOffset int64) (*DataMap, error) {
 	log.Printf("[Path Table] file paths: %d", table3FilePathsCount)
 
 	return &DataMap{
-		FileToPathPointers:  table1Entries,
-		BinaryFilePointers:  table2PhysFileEntries,
-		ArchiveFilePointers: table2VirtFileEntries,
-		ArchivePartPointers: table2ChunkEntries,
-		FilePaths:           table3FilePaths,
+		FileToPathOffsets:  table1Entries,
+		BinaryFileOffsets:  table2PhysFileEntries,
+		ArchiveFileOffsets: table2VirtFileEntries,
+		ArchivePartOffsets: table2ChunkEntries,
+		FilePaths:          table3FilePaths,
 	}, nil
 }

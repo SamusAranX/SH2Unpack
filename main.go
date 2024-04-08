@@ -32,28 +32,51 @@ func main() {
 	_, err := flags.Parse(&opts)
 	handleFlagsError(err)
 
-	log.Println(opts.InFile)
-	// log.Printf("out: %s", opts.Pos.OutDir)
+	log.Printf("Input: %s", opts.InFile)
+	log.Printf("Output Folder: %s", opts.Pos.OutDir)
 
-	dataMap, err := bin.ReadDataMap(string(opts.InFile), 0x2CCF00)
+	inFileBytes, err := os.ReadFile(string(opts.InFile))
+	if err != nil {
+		log.Printf("ReadFile err: %v", err)
+	}
+
+	startOffset := utils.IndexOfSlice(inFileBytes, bin.PS2Padding())
+	if startOffset < 0 {
+		log.Fatalln("couldn't find data block.")
+	}
+
+	// skip special padding and null byte padding
+	startOffset += 1024 + 24
+
+	log.Printf("Data offset found at 0x%X", startOffset)
+
+	dataMap, err := bin.ReadDataMap(string(opts.InFile), int64(startOffset))
 	if err != nil {
 		log.Printf("boop err: %v", err)
 	}
 
-	for _, ftp := range dataMap.FileToPathPointers {
-		path, pathOK := dataMap.GetFilePath(ftp.PathPointer)
-		if !pathOK {
-			log.Fatalf("Can't find path for offset 0x%X!", ftp.PathPointer)
+	// iterate over the archive parts in the FTP list
+	for _, ftp := range dataMap.FileToPathOffsets {
+		arpEntry, arpOK := dataMap.GetArchivePartEntry(ftp.FileOffset)
+		if !arpOK {
+			continue
 		}
 
-		arcEntry, arcOK := dataMap.GetArchiveFileEntry(ftp.FilePointer)
-		arpEntry, arpOK := dataMap.GetArchivePartEntry(ftp.FilePointer)
-		nop(arcEntry, arpEntry)
-
-		if arcOK {
-			log.Printf("[ARC]   0x%08X %s (%s)", ftp.FilePointer, arcEntry, path)
-		} else if arpOK {
-			log.Printf("  {arp} 0x%08X %[2]s (%[3]s)", ftp.FilePointer, arpEntry, path)
+		arpPath, ok := dataMap.GetFilePath(ftp.PathOffset)
+		if !ok {
+			log.Fatalf("Can't find file path for ARP at offset 0x%X", ftp.PathOffset)
 		}
+
+		arcEntry, ok := dataMap.GetArchiveFileEntryFromARPEntry(arpEntry, uint32(startOffset))
+		if !ok {
+			log.Fatalf("Can't find ARC entry for ARP %[2]s (%[3]s)", ftp.PathOffset, arpEntry, arpPath)
+		}
+
+		arcPath, ok := dataMap.GetFilePath(arcEntry.PathOffset)
+		if !ok {
+			log.Fatalf("Can't find file path for ARC %[2]s", ftp.PathOffset, arcEntry)
+		}
+
+		log.Printf("(%s) -> (%s)", arcPath, arpPath)
 	}
 }
