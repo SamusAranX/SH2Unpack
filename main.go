@@ -2,10 +2,9 @@ package main
 
 import (
 	"errors"
+	"github.com/jessevdk/go-flags"
 	"log"
 	"os"
-
-	"github.com/jessevdk/go-flags"
 	"sh2unpack/bin"
 )
 
@@ -26,45 +25,35 @@ func handleFlagsError(err error) {
 	}
 }
 
+func nop(a ...any) {}
+
 func main() {
 	var opts UnpackOptions
 	_, err := flags.Parse(&opts)
 	handleFlagsError(err)
 
-	// log.Printf("in:  %s", opts.InFile)
+	log.Println(opts.InFile)
 	// log.Printf("out: %s", opts.Pos.OutDir)
 
-	dataMap, err := bin.ReadDataMap(string(opts.InFile))
+	dataMap, err := bin.ReadDataMap(string(opts.InFile), 0x2CCF00)
 	if err != nil {
 		log.Printf("boop err: %v", err)
 	}
 
-	// minFTPPointer := slices.Min(maps.Values(dataMap.FileToPathPointers))
-	// minPathKey := slices.Min(maps.Keys(dataMap.FilePaths))
-	// log.Printf("min ftp pointer: %d", minFTPPointer)
-	// log.Printf("min path pointer: %d", minPathKey)
-	// return
-
-	for filePointer, pathPointer := range dataMap.FileToPathPointers {
-		mangledPointer := filePointer - bin.MagicOffset
-
-		filePath, pathOK := dataMap.FilePaths[pathPointer-bin.PathPointerOffset]
+	for _, ftp := range dataMap.FileToPathPointers {
+		path, pathOK := dataMap.GetFilePath(ftp.PathPointer)
 		if !pathOK {
-			log.Printf("%X - %X = %X", filePointer, bin.PathPointerOffset, mangledPointer)
-			log.Fatalln("file path not found!")
+			log.Fatalf("Can't find path for offset 0x%X!", ftp.PathPointer)
 		}
 
-		binEntry, binOK := dataMap.BinaryFilePointers[mangledPointer]
-		arcEntry, arcOK := dataMap.ArchiveFilePointers[mangledPointer]
-		dpfEntry, dpfOK := dataMap.ArchiveDeepFilePointers[mangledPointer]
-		if binOK {
-			log.Printf("[BIN|   |   ] %s (%s)", binEntry, filePath)
-		} else if arcOK {
-			log.Printf("[   |ARC|   ] %s (%s)", arcEntry, filePath)
-		} else if dpfOK {
-			log.Printf("[   |   |DPF] %s (%s)", dpfEntry, filePath)
-		} else {
-			log.Fatalln("no file found!")
+		arcEntry, arcOK := dataMap.GetArchiveFileEntry(ftp.FilePointer)
+		arpEntry, arpOK := dataMap.GetArchivePartEntry(ftp.FilePointer)
+		nop(arcEntry, arpEntry)
+
+		if arcOK {
+			log.Printf("[ARC]   0x%08X %s (%s)", ftp.FilePointer, arcEntry, path)
+		} else if arpOK {
+			log.Printf("  {arp} 0x%08X %[2]s (%[3]s)", ftp.FilePointer, arpEntry, path)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package bin
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -9,14 +10,8 @@ import (
 	"sh2unpack/utils"
 )
 
-const (
-	tableStart        = 0x2CCF00        // this is hardcoded for NTSC 2.01
-	MagicOffset       = 0xFF800         // source: it came to me in a dream
-	PathPointerOffset = MagicOffset - 1 // same as above
-)
-
 /*
-	[NTSC 2.01]
+	[NTSC 2.01] SLUS_202.28
 	Table 1 Offset: 0x2CCF00 (2936576)
 	Table 2 Offset: 0x2D4900 (2967808)
 	Table 3 Offset: 0x2E4680 (3032704)
@@ -24,7 +19,7 @@ const (
 	Data Table Len: 0x032DE0 ( 208352)
 */
 
-func ReadDataMap(inFile string) (*DataMap, error) {
+func ReadDataMap(inFile string, startOffset int64) (*DataMap, error) {
 	f, err := os.Open(inFile)
 	if err != nil {
 		return nil, fmt.Errorf("can't open file: %v", err)
@@ -32,13 +27,14 @@ func ReadDataMap(inFile string) (*DataMap, error) {
 
 	defer f.Close()
 
-	pos, err := f.Seek(tableStart, io.SeekStart)
+	pos, err := f.Seek(startOffset, io.SeekStart)
+	//pos, err := f.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, err
 	}
 
 	var (
-		table1Entries = map[uint32]uint32{} // map of filePointer -> pathPointer
+		table1Entries []Table1Entry
 
 		table2PhysFileEntries = map[uint32]Table2FileEntry{}  // map of offset in binary -> entry
 		table2VirtFileEntries = map[uint32]Table2FileEntry{}  // map of offset in binary -> entry
@@ -54,17 +50,18 @@ func ReadDataMap(inFile string) (*DataMap, error) {
 		}
 
 		if entry.FilePointer == 0 && entry.PathPointer == 0 {
+			pos, _ = f.Seek(-8, io.SeekCurrent)
 			break
 		}
 
-		table1Entries[entry.FilePointer] = entry.PathPointer
+		table1Entries = append(table1Entries, entry)
 	}
 
 	table1EntriesCount := len(table1Entries)
-	log.Printf("[Table 1] total entries: %d", table1EntriesCount)
+	log.Printf("[File/Path Table] total entries: %d", table1EntriesCount)
 
 	// skip to the next table
-	pos, err = f.Seek(72, io.SeekCurrent)
+	pos, err = f.Seek(80, io.SeekCurrent)
 	if err != nil {
 		return nil, err
 	}
@@ -107,30 +104,21 @@ func ReadDataMap(inFile string) (*DataMap, error) {
 		}
 
 		if entryType == EntryTypeEOF {
+			pos, _ = f.Seek(-4, io.SeekCurrent)
 			break
 		}
-
-		// if entry.FileOffset == 0x49F800 {
-		// 	// forestPathOffset := 0x2FD490
-		// 	log.Printf("forest.sfc: %+v", entry)
-		// 	log.Printf("  EntryType: %d", entry.EntryType)
-		// 	log.Printf("  PathOffset: 0x%X (%[1]d)", entry.PathOffset)
-		// 	log.Printf("  FileOffset: 0x%X (%[1]d)", entry.FileOffset)
-		// 	log.Printf("  FileLength: 0x%X (%[1]d)", entry.FileLength)
-		// }
 	}
 
 	table2PhysFileEntriesCount := len(table2PhysFileEntries)
 	table2VirtFileEntriesCount := len(table2VirtFileEntries)
 	table2ChunkEntriesCount := len(table2ChunkEntries)
 
-	log.Printf("[Table 2] phys files: %d", table2PhysFileEntriesCount)
-	log.Printf("[Table 2] virt files: %d", table2VirtFileEntriesCount)
-	log.Printf("[Table 2] chunk files: %d", table2ChunkEntriesCount)
-	log.Printf("[Table 2] total files: %d", table2PhysFileEntriesCount+table2VirtFileEntriesCount+table2ChunkEntriesCount)
+	log.Printf("[File Table] phys files: %d", table2PhysFileEntriesCount)
+	log.Printf("[File Table] virt files: %d", table2VirtFileEntriesCount)
+	log.Printf("[File Table] chunk files: %d", table2ChunkEntriesCount)
 
 	// skip to the next table
-	pos, err = f.Seek(44, io.SeekCurrent)
+	pos, err = f.Seek(48, io.SeekCurrent)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +126,7 @@ func ReadDataMap(inFile string) (*DataMap, error) {
 	for {
 		pathOffset, pathEntry, err := utils.ReadNullTerminatedString(f)
 		if err != nil {
-			if err == utils.ErrInvalidASCIIChar {
+			if errors.Is(err, utils.ErrInvalidASCIIChar) || errors.Is(err, io.EOF) {
 				break // reached the end of the path table
 			}
 
@@ -149,13 +137,13 @@ func ReadDataMap(inFile string) (*DataMap, error) {
 	}
 
 	table3FilePathsCount := len(table3FilePaths)
-	log.Printf("[Table 3] file paths: %d", table3FilePathsCount)
+	log.Printf("[Path Table] file paths: %d", table3FilePathsCount)
 
 	return &DataMap{
-		FileToPathPointers:      table1Entries,
-		BinaryFilePointers:      table2PhysFileEntries,
-		ArchiveFilePointers:     table2VirtFileEntries,
-		ArchiveDeepFilePointers: table2ChunkEntries,
-		FilePaths:               table3FilePaths,
+		FileToPathPointers:  table1Entries,
+		BinaryFilePointers:  table2PhysFileEntries,
+		ArchiveFilePointers: table2VirtFileEntries,
+		ArchivePartPointers: table2ChunkEntries,
+		FilePaths:           table3FilePaths,
 	}, nil
 }
