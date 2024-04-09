@@ -9,7 +9,7 @@ type DefaultOptions struct {
 type UnpackOptions struct {
 	DefaultOptions
 
-	InFile flags.Filename `long:"infile" short:"i" required:"true" description:"The input file (.pdv or video file)"`
+	InFile flags.Filename `long:"infile" short:"i" required:"true" description:"The game's binary file (usually named something like SLUS_202.28)"`
 
 	Pos struct {
 		OutDir flags.Filename `positional-arg-name:"outdir" description:"The output directory"`

@@ -24,10 +24,22 @@ GOBUILDEXT = $(GOBUILD) -o $(BINARY_NAME) $(LDFLAGS)
 
 .EXPORT_ALL_VARIABLES:
 	GOAMD64 = v3
-.PHONY: build format clean run debug deps
+.PHONY: build buildall format clean run debug deps
 build:
 	$(GOBUILDEXT)
 	@echo Build completed
+buildall:
+	@echo Building windows-x64…
+	@GOOS=windows GOARCH=amd64 $(GOBUILD) -o $(BINARY_NAME)-windows-x64.exe $(LDFLAGS)
+	@echo Building macos-x64…
+	@GOOS=darwin GOARCH=amd64 $(GOBUILD) -o $(BINARY_NAME)-macos-x64 $(LDFLAGS)
+	@echo Building macos-arm64…
+	@GOOS=darwin GOARCH=arm64 $(GOBUILD) -o $(BINARY_NAME)-macos-arm64 $(LDFLAGS)
+	@echo Building linux-x64…
+	@GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_NAME)-linux-x64 $(LDFLAGS)
+	@echo Building linux-arm64…
+	@GOOS=linux GOARCH=arm64 $(GOBUILD) -o $(BINARY_NAME)-linux-arm64 $(LDFLAGS)
+	@echo Builds completed
 format:
 	$(GOFORMAT) ./...
 clean:

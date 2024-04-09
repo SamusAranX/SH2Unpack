@@ -2,9 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/jessevdk/go-flags"
+	"sh2unpack/constants"
 )
 
 func handleFlagsError(err error) {
@@ -30,6 +32,9 @@ func main() {
 
 	unpackCmd := UnpackOptions{}
 	_, _ = parser.AddCommand("unpack", "SH2 Unpacker", "Extracts files from SH2's game files", &unpackCmd)
+
+	// print version
+	fmt.Printf("sh2unpack %s [%s]\n", constants.GitVersion, constants.GitCommitShort)
 
 	_, err := parser.Parse()
 	handleFlagsError(err)
