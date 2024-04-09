@@ -1,6 +1,6 @@
 # SH2Unpack
 
-This tool was written to help a friend with a video about Silent Hill 2.
+This tool is a Silent Hill 2 file extractor and was written to help a friend with a video about the game.
 
 I hope it can be useful for other people interested in SH2 as well.
 
