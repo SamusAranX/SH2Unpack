@@ -6,7 +6,7 @@ I hope it can be useful for other people interested in SH2 as well.
 
 ## Downloads
 
-Check out the [Releases page](./releases) for downloads.
+The latest release can be found here: https://github.com/SamusAranX/sh2unpack/releases/latest
 
 ## Usage
 
