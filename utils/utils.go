@@ -1,24 +1,28 @@
 package utils
 
 import (
+	"crypto/sha1"
 	"encoding/binary"
 	"errors"
-	"golang.org/x/exp/slices"
+	"fmt"
 	"io"
 	"os"
+
+	"golang.org/x/exp/slices"
 )
 
 const (
-	maxStringLength = 128
+	// maxStringLength governs how long ReadNullTerminatedString will look for a string.
+	maxStringLength = 64
 )
 
 var (
 	ErrInvalidASCIIChar  = errors.New("invalid ASCII char")
 	ErrMaxLengthExceeded = errors.New("max search length exceeded")
-	ErrWhaHappun         = errors.New("wha happun")
+	ErrWhaHappun         = errors.New("wha happun 🐭")
 )
 
-// ReadStruct reads arbitrary types and structs from readers.
+// ReadStruct reads arbitrary types and structs from io.Readers.
 func ReadStruct[T interface{}](r io.Reader, t *T) error {
 	err := binary.Read(r, binary.LittleEndian, t)
 	if err != nil {
@@ -28,6 +32,8 @@ func ReadStruct[T interface{}](r io.Reader, t *T) error {
 	return nil
 }
 
+// CopyPartOfFileToFile basically does exactly what it says on the tin.
+// Useful for copying chunks from large files into new smaller files.
 func CopyPartOfFileToFile(dst, src *os.File, srcOffset, srcLength int64) error {
 	_, err := src.Seek(srcOffset, io.SeekStart)
 	if err != nil {
@@ -40,6 +46,21 @@ func CopyPartOfFileToFile(dst, src *os.File, srcOffset, srcLength int64) error {
 	}
 
 	return nil
+}
+
+// HashFileSHA1 rewinds a file's pointer to the beginning, then returns an SHA1 hash of its contents.
+func HashFileSHA1(f *os.File) (string, error) {
+	_, err := f.Seek(0, io.SeekStart)
+	if err != nil {
+		return "", err
+	}
+
+	h := sha1.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%X", h.Sum(nil)), nil
 }
 
 // IndexOfSlice returns the index of the needle slice in the haystack slice, or -1 if haystack does not contain needle.

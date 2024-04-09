@@ -2,8 +2,12 @@ package main
 
 import "github.com/jessevdk/go-flags"
 
-type UnpackOptions struct {
+type DefaultOptions struct {
 	Debug bool `long:"debug" description:"Debug mode"`
+}
+
+type UnpackOptions struct {
+	DefaultOptions
 
 	InFile flags.Filename `long:"infile" short:"i" required:"true" description:"The input file (.pdv or video file)"`
 

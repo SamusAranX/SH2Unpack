@@ -1,7 +1,7 @@
 package constants
 
 import (
-	"log"
+	"fmt"
 	"time"
 )
 
@@ -21,7 +21,7 @@ const (
 func ParseBuildTime() *time.Time {
 	parsed, err := time.Parse(BuildTimeFormat, BuildTime)
 	if err != nil {
-		log.Printf("ParseBuildTime: %v", err.Error())
+		fmt.Printf("ParseBuildTime: %v", err.Error())
 		return nil
 	}
 
@@ -31,13 +31,13 @@ func ParseBuildTime() *time.Time {
 func ParseBuildTimeLocal() *time.Time {
 	parsed, err := time.Parse(BuildTimeFormat, BuildTime)
 	if err != nil {
-		log.Printf("ParseBuildTimeLocal: %v", err.Error())
+		fmt.Printf("ParseBuildTimeLocal: %v", err.Error())
 		return nil
 	}
 
 	localLocation, err := time.LoadLocation("Local")
 	if err != nil {
-		log.Printf("ParseBuildTimeLocal: %v", err.Error())
+		fmt.Printf("ParseBuildTimeLocal: %v", err.Error())
 		return nil
 	}
 
