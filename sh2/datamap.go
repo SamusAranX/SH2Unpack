@@ -2,6 +2,7 @@ package sh2
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -17,8 +18,30 @@ import (
 	Data Table Len: 0x032DE0 ( 208352)
 */
 
-func ReadDataMap(f *os.File, startOffset int64) (*DataMap, error) {
-	pos, err := f.Seek(startOffset, io.SeekStart)
+func skipToNextTable(f *os.File, maxSteps int, debug bool) error {
+	// skip to the next table by advancing in 8-byte steps until non-null bytes are found
+	for i := 0; i < maxSteps; i++ {
+		var sentinel uint64
+		err := utils.ReadStructLE(f, &sentinel)
+		if err != nil {
+			return err
+		}
+
+		if sentinel != 0 {
+			if debug {
+				fmt.Printf("skipped %d bytes\n", i*8)
+			}
+
+			_, _ = f.Seek(-8, io.SeekCurrent)
+			break
+		}
+	}
+
+	return nil
+}
+
+func ReadDataMap(f *os.File, gv gameVersion, debug bool) (*DataMap, error) {
+	pos, err := f.Seek(int64(gv.DataOffset), io.SeekStart)
 	if err != nil {
 		return nil, err
 	}
@@ -29,37 +52,46 @@ func ReadDataMap(f *os.File, startOffset int64) (*DataMap, error) {
 		mergeFileOffsets:  map[uint32]MergeFileEntry{},
 		dataFileOffsets:   map[uint32]DataFileEntry{},
 		filePaths:         map[uint32]string{},
+		magicOffset:       gv.MagicOffset,
+	}
+
+	if debug {
+		fmt.Printf("start offset: 0x%X\n", pos)
 	}
 
 	for {
 		var entry FilePathEntry
-		err := utils.ReadStruct(f, &entry)
+		err := utils.ReadStructLE(f, &entry)
 		if err != nil {
 			return nil, err
 		}
 
 		if entry.FileOffset == 0 && entry.PathOffset == 0 {
-			pos, _ = f.Seek(-8, io.SeekCurrent)
+			_, _ = f.Seek(-8, io.SeekCurrent)
 			break
 		}
 
 		dataMap.FileToPathOffsets = append(dataMap.FileToPathOffsets, entry)
 	}
 
-	// fmt.Printf("total file-path entries: %d\n", len(dataMap.FileToPathOffsets))
+	if debug {
+		fmt.Printf("total file-path entries: %d\n", len(dataMap.FileToPathOffsets))
+	}
 
-	// skip to the next table
-	pos, err = f.Seek(80, io.SeekCurrent) // TODO: check if this offset is different in other game versions
+	err = skipToNextTable(f, 32, debug)
 	if err != nil {
 		return nil, err
 	}
 
+	if debug {
+		fmt.Printf("pos before file entry table: 0x%X\n", utils.CurrentPos(f))
+	}
+
 	for {
-		pos, _ = f.Seek(0, io.SeekCurrent)
-		posUint := uint32(pos)
+		posUint := uint32(utils.CurrentPos(f))
 
 		var entryType FileEntryType
-		err := utils.ReadStruct(f, &entryType)
+		err := utils.ReadStructLE(f, &entryType)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +99,7 @@ func ReadDataMap(f *os.File, startOffset int64) (*DataMap, error) {
 		switch entryType {
 		case EntryTypeBinaryFile:
 			var entry MergeFileEntry
-			err := utils.ReadStruct(f, &entry)
+			err := utils.ReadStructLE(f, &entry)
 			if err != nil {
 				return nil, err
 			}
@@ -75,7 +107,7 @@ func ReadDataMap(f *os.File, startOffset int64) (*DataMap, error) {
 			dataMap.binaryFileOffsets[posUint] = entry
 		case EntryTypeMergeFile:
 			var entry MergeFileEntry
-			err := utils.ReadStruct(f, &entry)
+			err := utils.ReadStructLE(f, &entry)
 			if err != nil {
 				return nil, err
 			}
@@ -83,7 +115,7 @@ func ReadDataMap(f *os.File, startOffset int64) (*DataMap, error) {
 			dataMap.mergeFileOffsets[posUint] = entry
 		case EntryTypeDataFile:
 			var entry DataFileEntry
-			err := utils.ReadStruct(f, &entry)
+			err := utils.ReadStructLE(f, &entry)
 			if err != nil {
 				return nil, err
 			}
@@ -92,19 +124,25 @@ func ReadDataMap(f *os.File, startOffset int64) (*DataMap, error) {
 		}
 
 		if entryType == EntryTypeEOF {
-			pos, _ = f.Seek(-4, io.SeekCurrent)
+			_, _ = f.Seek(-4, io.SeekCurrent)
 			break
 		}
 	}
 
-	// fmt.Printf("total binary files: %d\n", len(dataMap.binaryFileOffsets))
-	// fmt.Printf("total mergefiles: %d\n", len(dataMap.mergeFileOffsets))
-	// fmt.Printf("total data files: %d\n", len(dataMap.dataFileOffsets))
+	if debug {
+		fmt.Printf("total binary files: %d\n", len(dataMap.binaryFileOffsets))
+		fmt.Printf("total mergefiles: %d\n", len(dataMap.mergeFileOffsets))
+		fmt.Printf("total data files: %d\n", len(dataMap.dataFileOffsets))
+	}
 
 	// skip to the next table
-	pos, err = f.Seek(48, io.SeekCurrent) // TODO: check if this offset is different in other game versions
+	err = skipToNextTable(f, 32, debug)
 	if err != nil {
 		return nil, err
+	}
+
+	if debug {
+		fmt.Printf("pos before path table: 0x%X\n", utils.CurrentPos(f))
 	}
 
 	for {
@@ -120,7 +158,9 @@ func ReadDataMap(f *os.File, startOffset int64) (*DataMap, error) {
 		dataMap.filePaths[uint32(pathOffset)] = pathEntry
 	}
 
-	// fmt.Printf("total file paths: %d\n", len(dataMap.filePaths))
+	if debug {
+		fmt.Printf("total file paths: %d\n", len(dataMap.filePaths))
+	}
 
 	return &dataMap, nil
 }

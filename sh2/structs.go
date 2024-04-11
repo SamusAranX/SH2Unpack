@@ -2,6 +2,9 @@ package sh2
 
 import (
 	"fmt"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
+	"sh2unpack/utils"
 )
 
 type FileEntryType uint32
@@ -11,8 +14,6 @@ const (
 	EntryTypeBinaryFile FileEntryType = 0x03 // GX/GY/GZ files and such
 	EntryTypeMergeFile  FileEntryType = 0x23 // mergefiles
 	EntryTypeDataFile   FileEntryType = 0x50 // files within mergefiles
-
-	MagicOffset = 0xFF800 // source: it came to me in a dream
 )
 
 type FilePathEntry struct {
@@ -34,7 +35,7 @@ type MergeFileEntry struct {
 }
 
 func (e MergeFileEntry) String() string {
-	return fmt.Sprintf("{PathOffset:0x%08X Unknown1:0x%08X Unknown2:0x%08X}", e.PathOffset, e.Unknown1, e.Unknown2)
+	return fmt.Sprintf("{PathOffset:0x%X Unknown1:0x%X Unknown2:0x%X}", e.PathOffset, e.Unknown1, e.Unknown2)
 }
 
 // DataFileEntry describes where in a mergefile its contents can be found.
@@ -48,11 +49,12 @@ type DataFileEntry struct {
 }
 
 func (e DataFileEntry) String() string {
-	return fmt.Sprintf("{EntryAddress:0x%08X ChunkOffset:0x%08X ChunkLength:0x%08X}", e.EntryAddress, e.ChunkOffset, e.ChunkLength)
+	return fmt.Sprintf("{EntryAddress:0x%X ChunkOffset:0x%X ChunkLength:0x%X}", e.EntryAddress, e.ChunkOffset, e.ChunkLength)
 }
 
 type DataMap struct {
 	FileToPathOffsets []FilePathEntry
+	magicOffset       uint32
 
 	binaryFileOffsets map[uint32]MergeFileEntry
 	mergeFileOffsets  map[uint32]MergeFileEntry
@@ -61,17 +63,22 @@ type DataMap struct {
 	filePaths map[uint32]string
 }
 
-// debugging functions
-// func (d DataMap) GetBinaryFileEntries() []MergeFileEntry {
-// 	return maps.Values(d.binaryFileOffsets)
-// }
-//
-// func (d DataMap) GetMergeFileEntries() []MergeFileEntry {
-// 	return maps.Values(d.mergeFileOffsets)
-// }
+// GuessOffset employs Math™ to guess what the file path offset ("magic offset") is.
+// Not always correct. Needs tweaking.
+func (d DataMap) GuessOffset() int {
+	minFTPPathOffset := slices.Min(utils.Map(d.FileToPathOffsets, func(entry FilePathEntry) uint32 {
+		return entry.PathOffset
+	}))
+	minFilePathOffset := slices.Min(maps.Keys(d.filePaths))
 
+	return utils.IntAbs(int(minFTPPathOffset) - int(minFilePathOffset))
+}
+
+// GetBinaryFileEntry takes a raw address and returns a MergeFileEntry.
+// Not super helpful at the moment because it's unknown what these files contain.
 func (d DataMap) GetBinaryFileEntry(rawAddress uint32) (MergeFileEntry, bool) {
-	entry, ok := d.binaryFileOffsets[rawAddress-MagicOffset]
+	correctedAddress := rawAddress - d.magicOffset
+	entry, ok := d.binaryFileOffsets[correctedAddress]
 	if !ok {
 		return MergeFileEntry{}, false
 	}
@@ -81,7 +88,8 @@ func (d DataMap) GetBinaryFileEntry(rawAddress uint32) (MergeFileEntry, bool) {
 
 // GetMergeFileEntry takes a raw address and returns a MergeFileEntry.
 func (d DataMap) GetMergeFileEntry(rawAddress uint32) (MergeFileEntry, bool) {
-	entry, ok := d.mergeFileOffsets[rawAddress-MagicOffset]
+	correctedAddress := rawAddress - d.magicOffset
+	entry, ok := d.mergeFileOffsets[correctedAddress]
 	if !ok {
 		return MergeFileEntry{}, false
 	}
@@ -91,7 +99,8 @@ func (d DataMap) GetMergeFileEntry(rawAddress uint32) (MergeFileEntry, bool) {
 
 // GetDataFileEntry takes a raw address and returns a DataFileEntry.
 func (d DataMap) GetDataFileEntry(rawAddress uint32) (DataFileEntry, bool) {
-	entry, ok := d.dataFileOffsets[rawAddress-MagicOffset]
+	correctedAddress := rawAddress - d.magicOffset
+	entry, ok := d.dataFileOffsets[correctedAddress]
 	if !ok {
 		return DataFileEntry{}, false
 	}
@@ -104,7 +113,8 @@ func (d DataMap) GetDataFileEntry(rawAddress uint32) (DataFileEntry, bool) {
 // we have an address that matches a MergeFileEntry.
 func (d DataMap) GetMergeFileEntryFromDataFileEntry(datEntry DataFileEntry, minOffset uint32) (MergeFileEntry, bool) {
 	for addr := datEntry.EntryAddress; addr >= minOffset; addr -= 0x10 {
-		entry, ok := d.mergeFileOffsets[addr-MagicOffset]
+		correctedAddress := addr - d.magicOffset
+		entry, ok := d.mergeFileOffsets[correctedAddress]
 		if ok {
 			return entry, true
 		}
@@ -116,10 +126,20 @@ func (d DataMap) GetMergeFileEntryFromDataFileEntry(datEntry DataFileEntry, minO
 // GetFilePath takes a raw address and returns a file path string.
 // This only works with FilePathEntry.FileOffset or MergeFileEntry.PathOffset addresses.
 func (d DataMap) GetFilePath(rawAddress uint32) (string, bool) {
-	path, ok := d.filePaths[rawAddress-MagicOffset]
+	correctedAddress := rawAddress - d.magicOffset
+	path, ok := d.filePaths[correctedAddress]
 	if !ok {
 		return "", false
 	}
 
 	return path, true
 }
+
+// debugging functions
+// func (d *DataMap) GetBinaryFileEntries() []MergeFileEntry {
+// 	return maps.Values(d.binaryFileOffsets)
+// }
+//
+// func (d *DataMap) GetMergeFileEntries() []MergeFileEntry {
+// 	return maps.Values(d.mergeFileOffsets)
+// }

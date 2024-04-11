@@ -38,6 +38,24 @@ Version detected: SLUS_202.28, NTSC v2.01 (Greatest Hits)
 Extracted 3825 files.
 ```
 
+## Supported game versions
+
+This tool currently supports 6 distinct versions of the game:
+
+| Binary Name | Version Info                | SHA1 Hash                                  |
+|-------------|-----------------------------|--------------------------------------------|
+| SLUS_202.28 | NTSC (Greatest Hits)        | `3A27DEDDFA81CF30F46F0742C3523230CAC75D9A` |
+| SLES_503.82 | PAL (Special 2 Disc Set)    | `8BC367E1B9E7AA5CC5D5FA32048ED97F3FADE728` |
+| SLES_511.56 | PAL (Director's Cut)        | `2C5A7AFBA3A5B4507CCB828811C8ADD9E5D0E961` |
+| SLPM_123.45 | NTSC (E3 2001)              | `50C664C525736619215654186446A5D6B211FB31` |
+| SLUS_202.28 | NTSC (2001-07-13 prototype) | `888EFF71606FF4C1C610E30111B3CA5DA647EDCC` |
+| SLPM_610.09 | PAL (Trial Version)         | `B9CB2E895FC83CD4452DC9A818BF3CA26394ADBE` |
+
+If there are other versions of the game you think this tool should support, please file an issue.
+
+Modded versions are not *and will not be* officially supported.
+A way to skip the hash recognition step and manually provide offsets will be implemented at a later date.
+
 ## Building
 
 Use the makefile to create builds.

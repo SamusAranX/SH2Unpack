@@ -5,31 +5,50 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"golang.org/x/exp/constraints"
 	"io"
 	"os"
 
 	"golang.org/x/exp/slices"
 )
 
-const (
-	// maxStringLength governs how long ReadNullTerminatedString will look for a string.
-	maxStringLength = 64
-)
-
 var (
 	ErrInvalidASCIIChar  = errors.New("invalid ASCII char")
 	ErrMaxLengthExceeded = errors.New("max search length exceeded")
-	ErrWhaHappun         = errors.New("wha happun 🐭")
 )
 
-// ReadStruct reads arbitrary types and structs from io.Readers.
-func ReadStruct[T interface{}](r io.Reader, t *T) error {
+// ReadStructLE reads arbitrary types and structs from io.Readers (little endian).
+func ReadStructLE[T interface{}](r io.Reader, t *T) error {
 	err := binary.Read(r, binary.LittleEndian, t)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// ReadStructBE reads arbitrary types and structs from io.Readers (big endian).
+func ReadStructBE[T interface{}](r io.Reader, t *T) error {
+	err := binary.Read(r, binary.BigEndian, t)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func IntAbs[T constraints.Integer](x T) T {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// CurrentPos returns the return value of s.Seek(0, io.SeekCurrent).
+// A seek with offset 0 should, in theory, never fail.
+func CurrentPos(s io.ReadSeeker) int64 {
+	pos, _ := s.Seek(0, io.SeekCurrent)
+	return pos
 }
 
 // CopyPartOfFileToFile basically does exactly what it says on the tin.
@@ -89,17 +108,14 @@ func IndexOfSlice[T comparable](haystack []T, needle []T) int {
 	return -1
 }
 
-// ReadNullTerminatedString scans an io.ReadSeeker for a maximum of 128 bytes and
+// ReadNullTerminatedString scans an io.ReadSeeker for a maximum of 256 bytes and
 // returns the first null-terminated string it finds, along with its offset in the stream.
 // Returned strings will not contain any null bytes.
 func ReadNullTerminatedString(f io.ReadSeeker) (int64, string, error) {
+	// TODO: strings are 8-byte aligned. implementing that might save us a bunch of seeking
 	var tempBytes []byte
 	var offset int64 = -1
-	for i := 0; true; i++ {
-		if i == maxStringLength {
-			return -1, "", ErrMaxLengthExceeded
-		}
-
+	for i := 0; i < 256; i++ {
 		tempByte := make([]byte, 1)
 		_, err := f.Read(tempByte)
 		if err != nil {
@@ -134,5 +150,5 @@ func ReadNullTerminatedString(f io.ReadSeeker) (int64, string, error) {
 		}
 	}
 
-	return -1, "", ErrWhaHappun
+	return -1, "", ErrMaxLengthExceeded
 }

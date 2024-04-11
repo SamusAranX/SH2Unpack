@@ -3,7 +3,8 @@ package main
 import "github.com/jessevdk/go-flags"
 
 type DefaultOptions struct {
-	Debug bool `long:"debug" description:"Debug mode"`
+	Debug  bool `long:"debug" description:"Debug mode"`
+	DryRun bool `long:"dry-run" description:"Skip file extraction"`
 }
 
 type UnpackOptions struct {

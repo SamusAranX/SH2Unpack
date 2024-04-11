@@ -10,53 +10,6 @@ import (
 	"sh2unpack/utils"
 )
 
-type gameVersion struct {
-	DataOffset  uint32
-	FileName    string
-	Description string
-}
-
-var (
-	// map of game binary SHA1 hash -> game version
-	versionMap = map[string]gameVersion{
-		// NTSC
-		"3A27DEDDFA81CF30F46F0742C3523230CAC75D9A": {
-			DataOffset:  0x2CCF00,
-			FileName:    "SLUS_202.28",
-			Description: "NTSC v2.01 (Greatest Hits)",
-		},
-
-		// PAL
-		"8BC367E1B9E7AA5CC5D5FA32048ED97F3FADE728": {
-			DataOffset:  0x2BD390,
-			FileName:    "SLES_503.82",
-			Description: "PAL v1.02 (Base Game)",
-		},
-		"2C5A7AFBA3A5B4507CCB828811C8ADD9E5D0E961": {
-			DataOffset:  0x2CD980,
-			FileName:    "SLES_511.56",
-			Description: "PAL v1.10 (Director's Cut)",
-		},
-
-		// Demos/Prototypes
-		"B9CB2E895FC83CD4452DC9A818BF3CA26394ADBE": {
-			DataOffset:  0x2B3120,
-			FileName:    "SLPM_610.09",
-			Description: "PAL v1.00 (Trial Version)",
-		},
-		"50C664C525736619215654186446A5D6B211FB31": {
-			DataOffset:  0x45C200,
-			FileName:    "SLPM_123.45",
-			Description: "NTSC v0.30 (E3 Demo)",
-		},
-		"888EFF71606FF4C1C610E30111B3CA5DA647EDCC": {
-			DataOffset:  0x29CD00,
-			FileName:    "SLUS_202.28",
-			Description: "NTSC v0.10 (2001-07-13 prototype)",
-		},
-	}
-)
-
 func (opts *UnpackOptions) Execute(args []string) error {
 	inFilePath := string(opts.InFile)
 	outDirPath := string(opts.Pos.OutDir)
@@ -74,14 +27,14 @@ func (opts *UnpackOptions) Execute(args []string) error {
 		return fmt.Errorf("Can't hash input file: %v", err)
 	}
 
-	version, ok := versionMap[shaString]
+	gameVersion, ok := sh2.VersionMap[shaString]
 	if !ok {
-		return fmt.Errorf("Not a supported file or version of the game: %s", inFilePath)
+		return fmt.Errorf("Not a supported file or gameVersion of the game: %s", inFilePath)
 	}
 
-	fmt.Printf("Version detected: %s, %s\n", version.FileName, version.Description)
+	fmt.Printf("Version detected: %s, %s\n", gameVersion.FileName, gameVersion.Description)
 
-	dataMap, err := sh2.ReadDataMap(inFile, int64(version.DataOffset))
+	dataMap, err := sh2.ReadDataMap(inFile, gameVersion, opts.Debug)
 	if err != nil {
 		return fmt.Errorf("Couldn't read data map: %v", err)
 	}
@@ -89,12 +42,22 @@ func (opts *UnpackOptions) Execute(args []string) error {
 	// explicitly close the input file here, it's no longer needed
 	_ = inFile.Close()
 
+	if opts.Debug {
+		guessedOffset := dataMap.GuessOffset()
+		fmt.Printf("guessed offset: 0x%X\n", guessedOffset)
+		fmt.Printf("actual offset:  0x%X\n", gameVersion.MagicOffset)
+	}
+
 	mergeFileMap := map[string]*os.File{}
 	defer func() {
 		for _, f := range mergeFileMap {
 			_ = f.Close()
 		}
 	}()
+
+	if opts.DryRun {
+		fmt.Println("Doing a dry run.")
+	}
 
 	numExtractedFiles := 0
 
@@ -110,7 +73,7 @@ func (opts *UnpackOptions) Execute(args []string) error {
 			return fmt.Errorf("Can't find file path for data file at offset 0x%X", ftp.PathOffset)
 		}
 
-		mgfEntry, ok := dataMap.GetMergeFileEntryFromDataFileEntry(datEntry, version.DataOffset)
+		mgfEntry, ok := dataMap.GetMergeFileEntryFromDataFileEntry(datEntry, gameVersion.DataOffset)
 		if !ok {
 			return fmt.Errorf("Can't find mergefile entry for data file %[2]s (%[3]s)", ftp.PathOffset, datEntry, datPath)
 		}
@@ -132,31 +95,34 @@ func (opts *UnpackOptions) Execute(args []string) error {
 			mergeFile = f
 		}
 
-		destinationPath := filepath.Join(outDirPath, strings.ToUpper(datPath))
+		destinationPath := filepath.Join(outDirPath, datPath)
 		destinationDir := filepath.Dir(destinationPath)
-
-		err = os.MkdirAll(destinationDir, 0700)
-		if err != nil {
-			return fmt.Errorf("Can't create destination dir %s: %v", destinationDir, err)
-		}
-
-		f, err := os.Create(destinationPath)
-		if err != nil {
-			return fmt.Errorf("Can't create destination file %s: %v", destinationPath, err)
-		}
-
 		mgfBase := filepath.Base(mgfPath)
 
-		err = utils.CopyPartOfFileToFile(f, mergeFile, int64(datEntry.ChunkOffset), int64(datEntry.ChunkLength))
-		if err != nil {
-			return fmt.Errorf("Can't copy chunk from %s to %s: %v", mgfBase, destinationPath, err)
+		if !opts.DryRun {
+			err = os.MkdirAll(destinationDir, 0700)
+			if err != nil {
+				return fmt.Errorf("Can't create destination dir %s: %v", destinationDir, err)
+			}
+
+			f, err := os.Create(destinationPath)
+			if err != nil {
+				return fmt.Errorf("Can't create destination file %s: %v", destinationPath, err)
+			}
+
+			err = utils.CopyPartOfFileToFile(f, mergeFile, int64(datEntry.ChunkOffset), int64(datEntry.ChunkLength))
+			if err != nil {
+				return fmt.Errorf("Can't copy chunk from %s to %s: %v", mgfBase, destinationPath, err)
+			}
+			_ = f.Close()
+
+			if opts.Debug {
+				fmt.Printf("Extracted %d bytes from %s to %s\n", datEntry.ChunkLength, mgfBase, destinationPath)
+			}
 		}
-		_ = f.Close()
+
 		numExtractedFiles++
 
-		if opts.Debug {
-			fmt.Printf("Extracted %d bytes from %s to %s\n", datEntry.ChunkLength, mgfBase, destinationPath)
-		}
 	}
 
 	fmt.Printf("Extracted %d files.\n", numExtractedFiles)
