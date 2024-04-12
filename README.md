@@ -42,14 +42,14 @@ Extracted 3825 files.
 
 This tool currently supports 6 distinct versions of the game:
 
-| Binary Name | Version Info                | SHA1 Hash                                  |
-|-------------|-----------------------------|--------------------------------------------|
-| SLUS_202.28 | NTSC (Greatest Hits)        | `3A27DEDDFA81CF30F46F0742C3523230CAC75D9A` |
-| SLES_503.82 | PAL (Special 2 Disc Set)    | `8BC367E1B9E7AA5CC5D5FA32048ED97F3FADE728` |
-| SLES_511.56 | PAL (Director's Cut)        | `2C5A7AFBA3A5B4507CCB828811C8ADD9E5D0E961` |
-| SLPM_123.45 | NTSC (E3 2001)              | `50C664C525736619215654186446A5D6B211FB31` |
-| SLUS_202.28 | NTSC (2001-07-13 prototype) | `888EFF71606FF4C1C610E30111B3CA5DA647EDCC` |
-| SLPM_610.09 | PAL (Trial Version)         | `B9CB2E895FC83CD4452DC9A818BF3CA26394ADBE` |
+| Binary Name | Region      | Version Info                    | SHA1 Hash (ISO File)                       | SHA1 Hash (Executable)                     |
+|-------------|-------------|---------------------------------|--------------------------------------------|--------------------------------------------|
+| SLUS_202.28 | NTSC-U 🇺🇸 | Greatest Hits (NTSC-U)          | `2F4D89736D9240C6F8719E50A8D450A81AD638AE` | `3A27DEDDFA81CF30F46F0742C3523230CAC75D9A` |
+| SLES_503.82 | PAL 🇪🇺    | Special 2 Disc Set (PAL)        | `924409DE4DC4CABD4A978FAE7DE94159E57A1C8D` | `8BC367E1B9E7AA5CC5D5FA32048ED97F3FADE728` |
+| SLES_511.56 | PAL 🇪🇺    | Director's Cut (PAL)            | `3A2B03AEF487AE88BA5C51B064AAF8295398F684` | `2C5A7AFBA3A5B4507CCB828811C8ADD9E5D0E961` |
+| SLPM_123.45 | NTSC-U 🇺🇸 | E3 2001 (NTSC-U)                | `02F2E34E018596A31C0A5CAB1B6BA981ABC2F008` | `50C664C525736619215654186446A5D6B211FB31` |
+| SLUS_202.28 | NTSC-U 🇺🇸 | Jul 13, 2001 prototype (NTSC-U) | `BBEBD65FCD3E792C3A57DBADF3EE1DEB2846172E` | `888EFF71606FF4C1C610E30111B3CA5DA647EDCC` |
+| SLPM_610.09 | NTSC-J 🇯🇵 | Trial Version (NTSC-J)          | `469DDB3E50EEFBF2C5BBC39E1FDF6FC039AD502B` | `B9CB2E895FC83CD4452DC9A818BF3CA26394ADBE` |
 
 If there are other versions of the game you think this tool should support, please file an issue.
 
@@ -60,7 +60,8 @@ A way to skip the hash recognition step and manually provide offsets will be imp
 
 Use the makefile to create builds.
 
-Specifically, `make build` to create a build for your current platform or `make buildall` to create builds for Windows (x64), macOS (x64, arm64), and Linux (x64, arm64).
+Specifically, `make build` to create a build for your current platform or `make buildall` to create 
+builds for Windows (x64), macOS (x64, arm64), and Linux (x64, arm64).
 
 ## Helpful Links
 

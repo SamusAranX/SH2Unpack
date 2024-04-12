@@ -10,12 +10,12 @@ type gameVersion struct {
 var (
 	// map of game binary SHA1 hash -> game version
 	VersionMap = map[string]gameVersion{
-		// NTSC
+		// NTSC-U
 		"3A27DEDDFA81CF30F46F0742C3523230CAC75D9A": {
 			DataOffset:  0x2CCF00,
 			MagicOffset: 0xFF800,
 			FileName:    "SLUS_202.28",
-			Description: "NTSC (Greatest Hits)",
+			Description: "Greatest Hits (NTSC-U)",
 		},
 
 		// PAL
@@ -23,13 +23,13 @@ var (
 			DataOffset:  0x2BD400,
 			MagicOffset: 0xFF800,
 			FileName:    "SLES_503.82",
-			Description: "PAL (Special 2 Disc Set)",
+			Description: "Special 2 Disc Set (PAL)",
 		},
 		"2C5A7AFBA3A5B4507CCB828811C8ADD9E5D0E961": {
 			DataOffset:  0x2CD980,
 			MagicOffset: 0xFF800,
 			FileName:    "SLES_511.56",
-			Description: "PAL (Director's Cut)",
+			Description: "Director's Cut (PAL)",
 		},
 
 		// Demos/Prototypes
@@ -37,19 +37,19 @@ var (
 			DataOffset:  0x45C200,
 			MagicOffset: 0xFFF80,
 			FileName:    "SLPM_123.45",
-			Description: "NTSC (E3 2001)",
+			Description: "E3 2001 (NTSC-U)",
 		},
 		"888EFF71606FF4C1C610E30111B3CA5DA647EDCC": {
 			DataOffset:  0x29CD00,
 			MagicOffset: 0xFF900,
 			FileName:    "SLUS_202.28",
-			Description: "NTSC (2001-07-13 prototype)",
+			Description: "Jul 13, 2001 prototype (NTSC-U)",
 		},
 		"B9CB2E895FC83CD4452DC9A818BF3CA26394ADBE": {
 			DataOffset:  0x2B3120,
 			MagicOffset: 0xFF900,
 			FileName:    "SLPM_610.09",
-			Description: "PAL (Trial Version)",
+			Description: "Trial Version (NTSC-J)",
 		},
 	}
 )
