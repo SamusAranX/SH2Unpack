@@ -40,16 +40,22 @@ Extracted 3825 files.
 
 ## Supported game versions
 
-This tool currently supports 6 distinct versions of the game:
+This tool currently supports 10 distinct versions of the game.\
+This includes the entire set of discs known to redump.org
+(minus the Tentou Houei-you Movie-ban disc on account of it containing no extractable data) plus the E3 2001 demo.
 
-| Binary Name | Region      | Version Info               | SHA1 Hash (ISO File)                       | SHA1 Hash (Executable)                     |
-|-------------|-------------|----------------------------|--------------------------------------------|--------------------------------------------|
-| SLUS_202.28 | NTSC-U 🇺🇸 | Greatest Hits              | `2F4D89736D9240C6F8719E50A8D450A81AD638AE` | `3A27DEDDFA81CF30F46F0742C3523230CAC75D9A` |
-| SLES_503.82 | PAL 🇪🇺    | Special 2 Disc Set         | `924409DE4DC4CABD4A978FAE7DE94159E57A1C8D` | `8BC367E1B9E7AA5CC5D5FA32048ED97F3FADE728` |
-| SLES_511.56 | PAL 🇪🇺    | Director's Cut             | `3A2B03AEF487AE88BA5C51B064AAF8295398F684` | `2C5A7AFBA3A5B4507CCB828811C8ADD9E5D0E961` |
-| SLPM_123.45 | NTSC-U 🇺🇸 | E3 2001                    | `02F2E34E018596A31C0A5CAB1B6BA981ABC2F008` | `50C664C525736619215654186446A5D6B211FB31` |
-| SLUS_202.28 | NTSC-U 🇺🇸 | Jul 13, 2001 prototype     | `BBEBD65FCD3E792C3A57DBADF3EE1DEB2846172E` | `888EFF71606FF4C1C610E30111B3CA5DA647EDCC` |
-| SLPM_610.09 | NTSC-J 🇯🇵 | Trial Version              | `469DDB3E50EEFBF2C5BBC39E1FDF6FC039AD502B` | `B9CB2E895FC83CD4452DC9A818BF3CA26394ADBE` |
+| Binary Name | Region      | Version Info           | SHA1 Hash (ISO File)                       | SHA1 Hash (Binary)                         |
+|-------------|-------------|------------------------|--------------------------------------------|--------------------------------------------|
+| SLPM_123.45 | NTSC-U 🇺🇸 | E3 2001                | `02F2E34E018596A31C0A5CAB1B6BA981ABC2F008` | `50C664C525736619215654186446A5D6B211FB31` |
+| SLUS_202.28 | NTSC-U 🇺🇸 | Jul 13, 2001 prototype | `BBEBD65FCD3E792C3A57DBADF3EE1DEB2846172E` | `888EFF71606FF4C1C610E30111B3CA5DA647EDCC` |
+| SLUS_202.28 | NTSC-U 🇺🇸 | Silent Hill 2          | `F7FCB40D8C79A6AC622299069A4DC2900C74B200` | `ECFD22C67F7712480F52D0674B70964D2A82E648` |
+| SLUS_202.28 | NTSC-U 🇺🇸 | Greatest Hits          | `2F4D89736D9240C6F8719E50A8D450A81AD638AE` | `3A27DEDDFA81CF30F46F0742C3523230CAC75D9A` |
+| SLES_503.82 | PAL 🇪🇺    | Special 2 Disc Set     | `924409DE4DC4CABD4A978FAE7DE94159E57A1C8D` | `8BC367E1B9E7AA5CC5D5FA32048ED97F3FADE728` |
+| SLES_511.56 | PAL 🇪🇺    | Director's Cut         | `3A2B03AEF487AE88BA5C51B064AAF8295398F684` | `2C5A7AFBA3A5B4507CCB828811C8ADD9E5D0E961` |
+| SLKA_250.01 | NTSC-J 🇰🇷 | Silent Hill 2          | `5A215C62899F4DA374B9F6E0E56CA6CA6D0A06CB` | `279A1B4DBFD43FF7A5920A52D51B153C638D1D6B` |
+| SLPM_610.09 | NTSC-J 🇯🇵 | Red Ribbon Demo        | `469DDB3E50EEFBF2C5BBC39E1FDF6FC039AD502B` | `B9CB2E895FC83CD4452DC9A818BF3CA26394ADBE` |
+| SLPM_650.51 | NTSC-J 🇯🇵 | Silent Hill 2          | `6A9C80C3D965EE0E50A4FC131AE0D3D9F2384552` | `ED1DB66E92FEE366B375D5A1993F4609641BE6DA` |
+| SLPM_650.98 | NTSC-J 🇯🇵 | Saigo no Uta           | `9BDF3E49F22366B0C27EC9F1EE31721A5106B1B4` | `EFA89AA35054A9A547F22673AB601CFB333587DE` |
 
 If there are other versions of the game you think this tool should support, please file an issue.
 

@@ -11,11 +11,37 @@ var (
 	// map of game binary SHA1 hash -> game version
 	VersionMap = map[string]gameVersion{
 		// NTSC-U
+		"ECFD22C67F7712480F52D0674B70964D2A82E648": {
+			DataOffset:  0x2BB180,
+			MagicOffset: 0xFF900,
+			FileName:    "SLUS_202.28",
+			Description: "Silent Hill 2 (NTSC-U)",
+		},
 		"3A27DEDDFA81CF30F46F0742C3523230CAC75D9A": {
 			DataOffset:  0x2CCF00,
 			MagicOffset: 0xFF800,
 			FileName:    "SLUS_202.28",
 			Description: "Greatest Hits (NTSC-U)",
+		},
+
+		// NTSC-J
+		"ED1DB66E92FEE366B375D5A1993F4609641BE6DA": {
+			DataOffset:  0x2BB900,
+			MagicOffset: 0xFF900,
+			FileName:    "SLPM_650.51",
+			Description: "Silent Hill 2 (NTSC-J, Japan)",
+		},
+		"279A1B4DBFD43FF7A5920A52D51B153C638D1D6B": {
+			DataOffset:  0x2CD080,
+			MagicOffset: 0xFF800,
+			FileName:    "SLKA_250.01",
+			Description: "Silent Hill 2 (NTSC-J, South Korea)",
+		},
+		"EFA89AA35054A9A547F22673AB601CFB333587DE": {
+			DataOffset:  0x2CCB80,
+			MagicOffset: 0xFF800,
+			FileName:    "SLPM_650.98",
+			Description: "Saigo no Uta (NTSC-J)",
 		},
 
 		// PAL
@@ -49,7 +75,7 @@ var (
 			DataOffset:  0x2B3120,
 			MagicOffset: 0xFF900,
 			FileName:    "SLPM_610.09",
-			Description: "Trial Version (NTSC-J)",
+			Description: "Red Ribbon Demo (NTSC-J)",
 		},
 	}
 )
